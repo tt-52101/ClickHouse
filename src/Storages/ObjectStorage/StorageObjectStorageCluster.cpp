@@ -87,8 +87,15 @@ void StorageObjectStorageCluster::updateQueryToSendIfNeeded(
     const ContextPtr & context)
 {
     auto * table_function = extractTableFunctionFromSelectQuery(query);
-    auto * expression_list = table_function->arguments->as<ASTExpressionList>();
+    if (!table_function)
+    {
+        throw Exception(
+            ErrorCodes::LOGICAL_ERROR,
+            "Expected SELECT query from table function {}, got '{}'",
+            configuration->getEngineName(), queryToString(query));
+    }
 
+    auto * expression_list = table_function->arguments->as<ASTExpressionList>();
     if (!expression_list)
     {
         throw Exception(
@@ -107,7 +114,7 @@ void StorageObjectStorageCluster::updateQueryToSendIfNeeded(
             configuration->getEngineName());
     }
 
-    if (table_function->name == configuration->getTypeName())
+    if (!endsWith(table_function->name, "Cluster"))
         configuration->addStructureAndFormatToArgsIfNeeded(args, structure, configuration->format, context, /*with_structure=*/true);
     else
     {
