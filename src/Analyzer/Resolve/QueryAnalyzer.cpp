@@ -1,5 +1,6 @@
 #include <Interpreters/ProcessorsProfileLog.h>
 #include <Common/FieldVisitorToString.h>
+#include "TableFunctions/TableFunctionObjectStorage.h"
 
 #include <DataTypes/DataTypesNumber.h>
 #include <DataTypes/DataTypeString.h>
@@ -107,6 +108,7 @@ namespace Setting
     extern const SettingsBool allow_suspicious_types_in_group_by;
     extern const SettingsBool allow_suspicious_types_in_order_by;
     extern const SettingsBool use_concurrency_control;
+    extern const SettingsBool parallel_replicas_for_cluster_engines;
 }
 
 
@@ -4644,6 +4646,7 @@ void QueryAnalyzer::resolveTableFunction(QueryTreeNodePtr & table_function_node,
     bool nested_table_function)
 {
     auto & table_function_node_typed = table_function_node->as<TableFunctionNode &>();
+    LOG_DEBUG(&Poco::Logger::get("uwu"), "New settings: {}", scope.context->getSettingsRef()[Setting::parallel_replicas_for_cluster_engines]);
 
     if (!nested_table_function)
         expressions_visitor.visit(table_function_node_typed.getArgumentsNode());
@@ -5367,6 +5370,49 @@ void QueryAnalyzer::resolveQueryJoinTreeNode(QueryTreeNodePtr & join_tree_node, 
     scope.table_expressions_in_resolve_process.erase(join_tree_node.get());
 }
 
+class TempVisitor : public InDepthQueryTreeVisitor<TempVisitor>
+{
+public:
+    void visitImpl(QueryTreeNodePtr & node)
+    {
+        if (auto * table_function_node = node->as<TableFunctionNode>())
+        {
+            auto table_function_name = table_function_node->getTableFunctionName();
+
+            if (std::find(all_names.begin(), all_names.end(), table_function_name) != all_names.end())
+                counter += 1;
+        }
+    }
+
+    bool needChildVisit(const QueryTreeNodePtr &, const QueryTreeNodePtr & child)
+    {
+        if (auto * /*lambda_node*/ _ = child->as<LambdaNode>())
+        {
+            // updateAliasesIfNeeded(child, true /*is_lambda_node*/);
+            return true;
+        }
+        if (auto * query_tree_node = child->as<QueryNode>())
+        {
+            if (query_tree_node->isCTE())
+                return false;
+
+            // updateAliasesIfNeeded(child, false /*is_lambda_node*/);
+            return true;
+        }
+        if (auto * union_node = child->as<UnionNode>())
+        {
+            if (union_node->isCTE())
+                return false;
+
+            // updateAliasesIfNeeded(child, false /*is_lambda_node*/);
+            return true;
+        }
+
+        return true;
+    }
+
+    int counter = 0;
+};
 /** Resolve query.
   * This function modifies query node during resolve. It is caller responsibility to clone query node before resolve
   * if it is needed for later use.
@@ -5394,6 +5440,9 @@ void QueryAnalyzer::resolveQuery(const QueryTreeNodePtr & query_node, Identifier
         throw Exception(ErrorCodes::TOO_DEEP_SUBQUERIES, "Too deep subqueries. Maximum: {}", max_subquery_depth);
 
     auto & query_node_typed = query_node->as<QueryNode &>();
+
+    LOG_DEBUG(&Poco::Logger::get("uwu"), "Query node: {} {}", query_node->dumpTree(), StackTrace().toString());
+
 
     /** It is unsafe to call resolveQuery on already resolved query node, because during identifier resolution process
       * we replace identifiers with expressions without aliases, also at the end of resolveQuery all aliases from all nodes will be removed.
@@ -5432,6 +5481,7 @@ void QueryAnalyzer::resolveQuery(const QueryTreeNodePtr & query_node, Identifier
 
     /// Initialize aliases in query node scope
     QueryExpressionsAliasVisitor visitor(scope.aliases);
+    TempVisitor table_function_visitor;
 
     if (query_node_typed.hasWith())
         visitor.visit(query_node_typed.getWithNode());
@@ -5443,7 +5493,10 @@ void QueryAnalyzer::resolveQuery(const QueryTreeNodePtr & query_node, Identifier
         visitor.visit(query_node_typed.getPrewhere());
 
     if (query_node_typed.getWhere())
+    {
         visitor.visit(query_node_typed.getWhere());
+        table_function_visitor.visit(query_node_typed.getWhere());
+    }
 
     if (query_node_typed.hasGroupBy())
         visitor.visit(query_node_typed.getGroupByNode());
@@ -5545,6 +5598,16 @@ void QueryAnalyzer::resolveQuery(const QueryTreeNodePtr & query_node, Identifier
 
     TableExpressionsAliasVisitor table_expressions_visitor(scope);
     table_expressions_visitor.visit(query_node_typed.getJoinTree());
+    table_function_visitor.visit(query_node_typed.getJoinTree());
+
+    LOG_DEBUG(&Poco::Logger::get("uwu"), "Counted {} table functions", table_function_visitor.counter);
+
+    if (table_function_visitor.counter > 1)
+    {
+        LOG_DEBUG(&Poco::Logger::get("uwu"), "Disabled parallel replicas for cluster engines");
+        scope.potentially_remote_table_functions = 1;
+        scope.context->getQueryContext()->setSetting("parallel_replicas_for_cluster_engines", false);
+    }
 
     initializeQueryJoinTreeNode(query_node_typed.getJoinTree(), scope);
     scope.aliases.alias_name_to_table_expression_node.clear();
