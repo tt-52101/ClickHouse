@@ -13,25 +13,18 @@ class TableFunctionsWithClusterAlternativesVisitor : public InDepthQueryTreeVisi
 public:
     void visitImpl(const QueryTreeNodePtr & node)
     {
-        auto * table_function_node = node->as<TableFunctionNode>();
-        if (!table_function_node)
-            return;
-
-        auto table_function_name = table_function_node->getTableFunctionName();
-        if (table_function_name == TableFunctionFile::name)
-            return;
-
-        auto potential_cluster_table_function_name = table_function_name + "Cluster";
-
-        if (TableFunctionFactory::instance().isTableFunctionName(potential_cluster_table_function_name))
-            table_functions.push_back(node);
+        if (node->getNodeType() == QueryTreeNodeType::TABLE_FUNCTION)
+            ++table_function_count;
+        else if (node->getNodeType() == QueryTreeNodeType::TABLE)
+            ++table_count;
     }
 
     bool needChildVisit(const QueryTreeNodePtr &, const QueryTreeNodePtr &) { return true; }
-    std::vector<QueryTreeNodePtr> getTableFunctions() { return table_functions; }
+    bool shouldReplaceWithClusterAlternatives() const { return (table_count + table_function_count) == 1; }
 
 private:
-    std::vector<QueryTreeNodePtr> table_functions;
+    size_t table_count = 0;
+    size_t table_function_count = 0;
 };
 
 }
