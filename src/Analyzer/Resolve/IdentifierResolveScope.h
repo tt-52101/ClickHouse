@@ -197,8 +197,6 @@ struct IdentifierResolveScope
     /// Subquery depth
     size_t subquery_depth = 0;
 
-    size_t potentially_remote_table_functions = 0;
-
     /** Scope join tree node for expression.
       * Valid only during analysis construction for single expression.
       */

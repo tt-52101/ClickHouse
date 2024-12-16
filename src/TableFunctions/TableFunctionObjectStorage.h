@@ -106,19 +106,6 @@ struct HudiDefinition
     static constexpr auto storage_type_name = "S3";
 };
 
-// list all names
-constexpr std::array<const char *, 12> all_names = {AzureDefinition::name,
-                                                     S3Definition::name,
-                                                     GCSDefinition::name,
-                                                     COSNDefinition::name,
-                                                     OSSDefinition::name,
-                                                     HDFSDefinition::name,
-                                                     LocalDefinition::name,
-                                                     IcebergDefinition::name,
-                                                     IcebergS3Definition::name,
-                                                     IcebergAzureDefinition::name,
-                                                     IcebergLocalDefinition::name,
-                                                     IcebergHDFSDefinition::name};
 
 template <typename Definition, typename Configuration>
 class TableFunctionObjectStorage : public ITableFunction
