@@ -39,6 +39,7 @@ namespace Setting
     extern const SettingsBool skip_unavailable_shards;
     extern const SettingsBool parallel_replicas_local_plan;
     extern const SettingsString cluster_for_parallel_replicas;
+    extern const SettingsNonZeroUInt64 max_parallel_replicas;
 }
 
 IStorageCluster::IStorageCluster(
@@ -187,8 +188,16 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
     auto new_context = updateSettings(context->getSettingsRef());
     const auto & current_settings = new_context->getSettingsRef();
     auto timeouts = ConnectionTimeouts::getTCPTimeoutsWithFailover(current_settings);
+
+    size_t max_replicas_to_use = current_settings[Setting::max_parallel_replicas];
+    if (max_replicas_to_use > cluster->getShardsInfo().size())
+        max_replicas_to_use = cluster->getShardsInfo().size();
+
     for (const auto & shard_info : cluster->getShardsInfo())
     {
+        if (pipes.size() >= max_replicas_to_use)
+            break;
+
         auto try_results = shard_info.pool->getMany(
             timeouts,
             current_settings,
@@ -198,6 +207,9 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
 
         for (auto & try_result : try_results)
         {
+            if (pipes.size() >= max_replicas_to_use)
+                break;
+
             auto remote_query_executor = std::make_shared<RemoteQueryExecutor>(
                 std::vector<IConnectionPool::Entry>{try_result},
                 queryToString(query_to_send),
