@@ -1,7 +1,6 @@
 #include <Storages/IStorageCluster.h>
 
 #include <Common/Exception.h>
-#include "Interpreters/ClusterProxy/executeQuery.h"
 #include <Core/Settings.h>
 #include <Core/QueryProcessingStage.h>
 #include <DataTypes/DataTypeString.h>
@@ -26,7 +25,6 @@
 #include <Storages/StorageDictionary.h>
 
 #include <memory>
-#include <optional>
 #include <string>
 
 namespace DB
