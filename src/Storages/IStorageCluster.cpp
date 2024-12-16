@@ -190,8 +190,7 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
     auto timeouts = ConnectionTimeouts::getTCPTimeoutsWithFailover(current_settings);
 
     size_t max_replicas_to_use = current_settings[Setting::max_parallel_replicas];
-    if (max_replicas_to_use > cluster->getShardsInfo().size())
-        max_replicas_to_use = cluster->getShardsInfo().size();
+    max_replicas_to_use = std::min(max_replicas_to_use, cluster->getShardsInfo().size());
 
     for (const auto & shard_info : cluster->getShardsInfo())
     {
