@@ -125,9 +125,6 @@ StoragePtr TableFunctionObjectStorage<Definition, Configuration>::executeImpl(
     StoragePtr storage;
     const auto & settings = context->getSettingsRef();
 
-    LOG_DEBUG(&Poco::Logger::get("uwu"), "Here {}", StackTrace().toString());
-    LOG_DEBUG(&Poco::Logger::get("uwu"), "We good? {}", settings[Setting::parallel_replicas_for_cluster_engines]);
-
     auto parallel_replicas_cluster_name = settings[Setting::cluster_for_parallel_replicas].toString();
     auto can_use_parallel_replicas = settings[Setting::allow_experimental_parallel_reading_from_replicas] > 0
         && settings[Setting::parallel_replicas_for_cluster_engines]
