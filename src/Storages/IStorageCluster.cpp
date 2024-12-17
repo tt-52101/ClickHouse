@@ -187,8 +187,9 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
     const auto & current_settings = new_context->getSettingsRef();
     auto timeouts = ConnectionTimeouts::getTCPTimeoutsWithFailover(current_settings);
 
-    size_t max_replicas_to_use = current_settings[Setting::max_parallel_replicas];
-    max_replicas_to_use = std::min(max_replicas_to_use, cluster->getShardsInfo().size());
+    auto max_replicas_to_use = cluster->getShardsInfo().size();
+    if (current_settings[Setting::max_parallel_replicas] > 1)
+        max_replicas_to_use = std::min(max_replicas_to_use, current_settings[Setting::max_parallel_replicas].value);
 
     for (const auto & shard_info : cluster->getShardsInfo())
     {
@@ -202,29 +203,26 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
             {},
             /*skip_unavailable_endpoints=*/true);
 
-        for (auto & try_result : try_results)
-        {
-            if (pipes.size() >= max_replicas_to_use)
-                break;
+        if (try_results.empty())
+            continue;
 
-            auto remote_query_executor = std::make_shared<RemoteQueryExecutor>(
-                std::vector<IConnectionPool::Entry>{try_result},
-                queryToString(query_to_send),
-                getOutputHeader(),
-                new_context,
-                /*throttler=*/nullptr,
-                scalars,
-                Tables(),
-                processed_stage,
-                extension);
+        auto remote_query_executor = std::make_shared<RemoteQueryExecutor>(
+            std::vector<IConnectionPool::Entry>{try_results.front()},
+            queryToString(query_to_send),
+            getOutputHeader(),
+            new_context,
+            /*throttler=*/nullptr,
+            scalars,
+            Tables(),
+            processed_stage,
+            extension);
 
-            remote_query_executor->setLogger(log);
-            pipes.emplace_back(std::make_shared<RemoteSource>(
-                remote_query_executor,
-                add_agg_info,
-                current_settings[Setting::async_socket_for_remote],
-                current_settings[Setting::async_query_sending_for_remote]));
-        }
+        remote_query_executor->setLogger(log);
+        pipes.emplace_back(std::make_shared<RemoteSource>(
+            remote_query_executor,
+            add_agg_info,
+            current_settings[Setting::async_socket_for_remote],
+            current_settings[Setting::async_query_sending_for_remote]));
     }
 
     auto pipe = Pipe::unitePipes(std::move(pipes));

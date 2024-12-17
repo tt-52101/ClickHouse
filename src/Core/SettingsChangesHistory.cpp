@@ -66,6 +66,8 @@ static std::initializer_list<std::pair<ClickHouseVersion, SettingsChangesHistory
     {"24.12",
         {
             /// Release closed. Please use 25.1
+            {"max_parallel_replicas", 1, 1000, "Increased default number of used parallel replicas to 1000."},
+            {"parallel_replicas_for_cluster_engines", false, true, "New setting."},
             {"allow_experimental_database_iceberg", false, false, "New setting."},
             {"query_plan_join_swap_table", "false", "auto", "New setting. Right table was always chosen before."},
             {"max_size_to_preallocate_for_aggregation", 100'000'000, 1'000'000'000'000, "Enable optimisation for bigger tables."},
@@ -80,7 +82,6 @@ static std::initializer_list<std::pair<ClickHouseVersion, SettingsChangesHistory
             {"skip_redundant_aliases_in_udf", false, false, "New setting."},
             {"parallel_replicas_index_analysis_only_on_coordinator", true, true, "Index analysis done only on replica-coordinator and skipped on other replicas. Effective only with enabled parallel_replicas_local_plan"}, // enabling it was moved to 24.10
             /// Release closed. Please use 25.1
-                {"parallel_replicas_for_cluster_engines", true, true, "New setting"},
         }
     },
     {"24.11",

@@ -62,6 +62,8 @@ StorageFileCluster::StorageFileCluster(
 void StorageFileCluster::updateQueryToSendIfNeeded(DB::ASTPtr & query, const StorageSnapshotPtr & storage_snapshot, const DB::ContextPtr & context)
 {
     auto * table_function = extractTableFunctionFromSelectQuery(query);
+    if (!table_function)
+        throw Exception(ErrorCodes::LOGICAL_ERROR, "Expected SELECT query from table function fileCluster, got '{}'", queryToString(query));
 
     TableFunctionFileCluster::updateStructureAndFormatArgumentsIfNeeded(
         table_function,
