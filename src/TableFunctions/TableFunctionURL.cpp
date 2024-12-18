@@ -96,6 +96,7 @@ StoragePtr TableFunctionURL::getStorage(
     const auto & settings = global_context->getSettingsRef();
     auto parallel_replicas_cluster_name = settings[Setting::cluster_for_parallel_replicas].toString();
     auto can_use_parallel_replicas = !parallel_replicas_cluster_name.empty()
+        && settings[Setting::parallel_replicas_for_cluster_engines]
         && global_context->canUseTaskBasedParallelReplicas()
         && !global_context->isDistributed();
 
