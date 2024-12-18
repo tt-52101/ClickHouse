@@ -66,7 +66,6 @@ static std::initializer_list<std::pair<ClickHouseVersion, SettingsChangesHistory
     {"24.12",
         {
             /// Release closed. Please use 25.1
-            {"max_parallel_replicas", 1, 1000, "Increased default number of used parallel replicas to 1000."},
             {"parallel_replicas_for_cluster_engines", false, true, "New setting."},
             {"allow_experimental_database_iceberg", false, false, "New setting."},
             {"query_plan_join_swap_table", "false", "auto", "New setting. Right table was always chosen before."},
