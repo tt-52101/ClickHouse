@@ -125,13 +125,13 @@ StoragePtr TableFunctionObjectStorage<Definition, Configuration>::executeImpl(
     StoragePtr storage;
     const auto & settings = context->getSettingsRef();
 
-    auto parallel_replicas_cluster_name = settings[Setting::cluster_for_parallel_replicas].toString();
-    auto can_use_parallel_replicas = !parallel_replicas_cluster_name.empty()
+    const auto parallel_replicas_cluster_name = settings[Setting::cluster_for_parallel_replicas].toString();
+    const auto can_use_parallel_replicas = !parallel_replicas_cluster_name.empty()
         && settings[Setting::parallel_replicas_for_cluster_engines]
         && context->canUseTaskBasedParallelReplicas()
         && !context->isDistributed();
 
-    auto is_secondary_query = context->getClientInfo().query_kind == ClientInfo::QueryKind::SECONDARY_QUERY;
+    const auto is_secondary_query = context->getClientInfo().query_kind == ClientInfo::QueryKind::SECONDARY_QUERY;
 
     if (can_use_parallel_replicas && !is_secondary_query)
     {

@@ -24,6 +24,7 @@
 #include <Storages/SelectQueryInfo.h>
 #include <Storages/StorageDictionary.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 

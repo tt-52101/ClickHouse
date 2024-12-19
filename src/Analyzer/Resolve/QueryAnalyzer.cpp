@@ -108,7 +108,6 @@ namespace Setting
     extern const SettingsBool allow_suspicious_types_in_group_by;
     extern const SettingsBool allow_suspicious_types_in_order_by;
     extern const SettingsBool use_concurrency_control;
-    extern const SettingsBool parallel_replicas_for_cluster_engines;
 }
 
 
