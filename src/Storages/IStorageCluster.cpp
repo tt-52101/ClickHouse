@@ -197,10 +197,12 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
         if (pipes.size() >= max_replicas_to_use)
             break;
 
+        /// We're taking all replicas as shards,
+        /// so each shard will have only one address to connect to.
         auto try_results = shard_info.pool->getMany(
             timeouts,
             current_settings,
-            PoolMode::GET_MANY,
+            PoolMode::GET_ONE,
             {},
             /*skip_unavailable_endpoints=*/true);
 
