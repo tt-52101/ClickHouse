@@ -2,6 +2,7 @@
 -- Tag no-fasttest: Depends on AWS
 
 SET enable_parallel_replicas=1;
+SET max_parallel_replicas=4;
 SET cluster_for_parallel_replicas='test_cluster_two_shards';
 SET parallel_replicas_for_cluster_engines=true;
 
