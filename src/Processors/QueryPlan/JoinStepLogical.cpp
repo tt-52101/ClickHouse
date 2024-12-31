@@ -668,7 +668,7 @@ JoinPtr JoinStepLogical::convertToPhysical(JoinActionRef & left_filter, JoinActi
             }
         }
         ExpressionActionsPtr & mixed_join_expression = table_join->getMixedJoinExpression();
-        mixed_join_expression = std::make_shared<ExpressionActions>(std::move(dag), ExpressionActionsSettings::fromContext(query_context));
+        mixed_join_expression = std::make_shared<ExpressionActions>(std::move(dag), ExpressionActionsSettings(query_context));
     }
 
     NameSet required_output_columns_set(required_output_columns.begin(), required_output_columns.end());
