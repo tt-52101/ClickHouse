@@ -170,6 +170,12 @@ DOCKERS = [
         platforms=[Docker.Platforms.ARM],
         depends_on=[],
     ),
+    Docker.Config(
+        name="clickhouse/sqlancer-test",
+        path="./ci/docker/sqlancer-test",
+        platforms=Docker.Platforms.arm_amd,
+        depends_on=[],
+    ),
 ]
 
 # TODO:
@@ -219,10 +225,6 @@ DOCKERS = [
 #     "name": "clickhouse/kerberized-hadoop",
 #     "dependent": []
 # },
-# "docker/test/sqlancer": {
-#     "name": "clickhouse/sqlancer-test",
-#     "dependent": []
-# },
 # "docker/test/install/deb": {
 #     "name": "clickhouse/install-deb-test",
 #     "dependent": []
@@ -262,6 +264,7 @@ class JobNames:
     Docs = "Docs check"
     CLICKBENCH = "ClickBench"
     DOCKER_SERVER = "Docker server"
+    SQLANCER = "SQLancer"
 
 
 class ToolSet:
@@ -790,4 +793,15 @@ class Jobs:
             ],
         ),
         requires=[ArtifactNames.DEB_AMD_RELEASE, ArtifactNames.DEB_ARM_RELEASE],
+    )
+    sqlancer_job = Job.Config(
+        name=JobNames.SQLANCER,
+        runs_on=[RunnerLabels.FUNC_TESTER_AMD],
+        command="./ci/jobs/sqlancer_job.sh",
+        digest_config=Job.CacheDigestConfig(
+            include_paths=["./ci/jobs/sqlancer_job.sh"],
+        ),
+        run_in_docker="clickhouse/sqlancer-test",
+        requires=[ArtifactNames.CH_AMD_RELEASE],
+        timeout=3600,
     )
